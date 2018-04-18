@@ -1,5 +1,7 @@
 package com.tipico.poc.reactive.api;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +17,7 @@ import java.util.List;
 @Controller
 public class DemoController {
 
+	private static Logger logger = LoggerFactory.getLogger(DemoController.class);
 	private MyEventProcessor myEventProcessor = new MyEventProcessor();
 
 	@GetMapping("/hello-world")
@@ -43,7 +46,6 @@ public class DemoController {
 							sink.next(s);
 						}
 					}
-
 					public void processComplete() {
 						sink.complete();
 					}
@@ -52,10 +54,45 @@ public class DemoController {
 		return bridge;
 	}
 
+	@GetMapping("/hybridBridge")
+	@ResponseBody
+	public Flux<String> hybridBridge(HttpServletRequest request) {
+		// We will use the Flux.create to bridge a synchronous call to a Flux
+		Flux<String> bridge = Flux.create(sink -> {
+			myEventProcessor.register(
+				new MyEventListener<String>() {
+					public void onDataChunk(List<String> chunk) {
+						for(String s : chunk) {
+							logger.info("Serving data with PUSH");
+							sink.next(s);
+//							try {
+//								Thread.sleep(5000);
+//							} catch (InterruptedException e) {
+//								e.printStackTrace();
+//							}
+							logger.info("Serving data with PUSH [OK]");
+						}
+					}
+					public void processComplete() {
+						sink.complete();
+					}
+				});
+			sink.onRequest(n -> {
+				List<String> messages = myEventProcessor.request(n);
+				for(String s : messages) {
+					sink.next(s);
+					logger.info("Serving data with PULL");
+				}
+			});
+		});
+		return bridge;
+	}
+
 	@GetMapping("/publish/{data}")
 	@ResponseBody
 	public String publishData(@PathVariable String data) {
-		System.out.printf("Received data to publish [data: %s]%n", data);
+		logger.info(String.format("Received data to publish [data: %s]", data));
+		myEventProcessor.addDataToBacklogQueue(Arrays.asList("Hello", "World"));
 		myEventProcessor.publish(Arrays.asList(data));
 		return "OK";
 	}
@@ -63,7 +100,7 @@ public class DemoController {
 	@GetMapping("/close")
 	@ResponseBody
 	public String closeFlux() {
-		System.out.printf("Received signal to close Flux. ");
+		logger.info("Received signal to close Flux. ");
 		myEventProcessor.complete();
 		return "OK";
 	}
