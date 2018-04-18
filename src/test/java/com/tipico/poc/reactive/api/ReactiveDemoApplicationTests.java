@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -16,7 +17,7 @@ import java.util.function.DoubleSupplier;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class CstsHandlingDemoApplicationTests {
+public class ReactiveDemoApplicationTests {
 
 	@Test
 	public void contextLoads() {
@@ -206,6 +207,53 @@ public class CstsHandlingDemoApplicationTests {
 		}
 		myEventProcessor.publish(Arrays.asList("FooBar"));
 		myEventProcessor.complete();
+	}
+
+	private String alphabet(int letterNumber) {
+		if (letterNumber < 1 || letterNumber > 26) {
+			return null;
+		}
+		int letterIndexAscii = 'A' + letterNumber - 1;
+		return "" + (char) letterIndexAscii;
+	}
+
+	@Test
+	public void testFlux10() {
+		// Testing .handle operator
+		Flux<String> alphabetFlux = Flux.just(-1, 30, 13, 9, 20)
+			.handle((i, sink) -> {
+				// Sink will filter out any NULLs returned
+				String letter = alphabet(i);
+				if (letter != null) {
+					sink.next(letter);
+				}
+			});
+		alphabetFlux.subscribe(System.out::println);
+	}
+
+	@Test
+	public void testFlux11() {
+		Flux intervalFlux = Flux.interval(Duration.ofMillis(1000), Schedulers.newSingle("test"))
+			.handle((item, sink) -> {
+				sink.next(item);
+			});
+		intervalFlux.subscribe(new SampleSubscriber());
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		Flux intervalFlux2 = Flux.interval(Duration.ofMillis(1000), Schedulers.parallel())
+			.handle((item, sink) -> {
+				sink.next(item);
+			});
+		intervalFlux2.subscribe(new SampleSubscriber());
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
