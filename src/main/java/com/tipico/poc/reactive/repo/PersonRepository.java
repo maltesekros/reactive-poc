@@ -21,12 +21,7 @@ public class PersonRepository {
 	}
 
 	public Flux<Person> findAllWithDelay(int delayInSeconds) {
-		Flux result = Flux.just(new Person(1, "Chris"), new Person(2, "Melanie"));
-		try {
-			Thread.sleep(delayInSeconds);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		Flux result = Flux.just(new Person(1, "Chris"), new Person(2, "Melanie")).delayElements(Duration.ofSeconds(delayInSeconds));
 		System.out.printf("Return result after [delay: %d]%n", delayInSeconds);
 		return result;
 	}
