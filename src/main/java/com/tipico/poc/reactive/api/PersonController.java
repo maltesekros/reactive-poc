@@ -19,14 +19,14 @@ public class PersonController {
 	public Flux<Person> index() {
 		Flux<Person> persons = personRespository.findAll();
 		// return persons.filter(p -> p.getName().startsWith("C")).map(p -> new Person(p.getId(), p.getName().toUpperCase()));
-		return persons.map(p -> new Person(p.getId(), p.getName().toUpperCase()));
+		return persons.map(p -> new Person(p.getId(), p.getName().toUpperCase(), p.getSurname().toUpperCase()));
 	}
 
 	@GetMapping("/delay")
 	public Flux<Person> delay() {
 		Flux<Person> persons = personRespository.findAllWithDelay(10);
 		Flux<Person> personsSecondBatch = personRespository.findAllWithDelay(1);
-		Flux capitalPersons =  persons.map(p -> new Person(p.getId(), p.getName().toUpperCase()));
+		Flux capitalPersons =  persons.map(p -> new Person(p.getId(), p.getName().toUpperCase(), p.getSurname().toUpperCase()));
 		Flux result = Flux.concat(capitalPersons, personsSecondBatch);
 		return result;
 	}

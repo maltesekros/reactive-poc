@@ -4,11 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.tipico.poc</groupId>
-	<artifactId>csts-handling-demo</artifactId>
+	<artifactId>reactive-demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>csts-handling-demo</name>
+	<name>Reactive Demo</name>
 	<description>Demo project for Spring Boot</description>
 
 	<parent>
