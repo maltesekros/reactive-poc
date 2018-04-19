@@ -26,4 +26,31 @@ public class PersonRepositoryTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void testTwoSubscribers() {
+        // We will see the persons obtained from the second call before even though they
+        // are called after since the ones in the first call are with delay.
+        Flux<Person> delayPersonFlux = personRepository.findAllWithDelay(2);
+        delayPersonFlux.subscribe(person -> System.out.println("1 > " + person.getName()));
+        Flux<Person> personFlux = personRepository.findAll();
+        personFlux.subscribe(person -> System.out.println("2 > " + person.getName()));
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void testTwoSubscribers2() {
+        Flux<Person> delayPersonFlux = personRepository.findAllWithDelay(2);
+        Flux<Person> personFlux = Flux.just(new Person(1, "Fast", "Bob"), new Person(2, "Fast", "Jane"), new Person(3, "Fast", "Jack"));
+        personFlux.concatWith(delayPersonFlux).subscribe(person -> System.out.println(person.getName() + " " + person.getSurname()));
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 }
