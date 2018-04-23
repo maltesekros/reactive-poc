@@ -6,7 +6,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
@@ -22,12 +22,20 @@ public class PersonServiceTest {
 
 	@Test
 	public void testGetById() {
-		Flux<PersonDTO> personFlux = personService.getPersonById(1);
+		Mono<PersonDTO> personFlux = personService.getPersonById(1);
 		// Assert ...
 		StepVerifier.create(personFlux).recordWith(ArrayList::new).
 			expectNextCount(1).consumeRecordedWith(results -> {
 				PersonDTO p = results.iterator().next();
 				assertEquals("Chris", p.getName());
 		}).verifyComplete();
+	}
+
+	@Test
+	public void testGetByIdNonExistent() {
+		// No person is found with this id.
+		Mono<PersonDTO> personFlux = personService.getPersonById(1523543);
+		// Assert ...
+		StepVerifier.create(personFlux).expectErrorMessage("No element found with id. ").verify();
 	}
 }
