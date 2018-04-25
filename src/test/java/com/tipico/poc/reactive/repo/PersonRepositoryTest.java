@@ -45,7 +45,7 @@ public class PersonRepositoryTest {
     @Test
     public void testTwoSubscribers2() {
         Flux<Person> delayPersonFlux = personRepository.findAllWithDelay(2);
-        Flux<Person> personFlux = Flux.just(new Person(1, "Fast", "Bob"), new Person(2, "Fast", "Jane"), new Person(3, "Fast", "Jack"));
+        Flux<Person> personFlux = Flux.just(new Person(1, "Fast", "Bob", 21), new Person(2, "Fast", "Jane", 33), new Person(3, "Fast", "Jack", 21));
         personFlux.concatWith(delayPersonFlux).subscribe(person -> System.out.println(person.getName() + " " + person.getSurname()));
         try {
             Thread.sleep(10000);

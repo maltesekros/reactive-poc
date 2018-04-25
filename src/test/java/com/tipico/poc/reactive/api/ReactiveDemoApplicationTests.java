@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
@@ -254,6 +255,40 @@ public class ReactiveDemoApplicationTests {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Test
+	public void testColdSource() {
+		Flux<String> source = Flux.fromIterable(Arrays.asList("blue", "green", "orange", "purple"))
+			.doOnNext(System.out::println)
+			.filter(s -> s.startsWith("o"))
+			.map(String::toUpperCase);
+		// All subscribers will ALL the items
+		source.subscribe(colour -> System.out.println("Subscriber 1: " + colour));
+		source.subscribe(colour -> System.out.println("Subscriber 2: " + colour));
+		source.subscribe(colour -> System.out.println("Subscriber 3: " + colour));
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void testHotSource() {
+		UnicastProcessor<String> hotSource = UnicastProcessor.create();
+		Flux<String> hotFlux = hotSource.publish()
+			.autoConnect()
+			.map(String::toUpperCase);
+		hotFlux.subscribe(d -> System.out.println("Subscriber 1 to Hot Source: "+d));
+		hotSource.onNext("blue");
+		hotSource.onNext("green");
+		// The second subscriber will NOT get all the items but will start getting only
+		// those from when he subsribed.
+		hotFlux.subscribe(d -> System.out.println("Subscriber 2 to Hot Source: "+d));
+		hotSource.onNext("orange");
+		hotSource.onNext("purple");
+		hotSource.onComplete();
 	}
 
 }

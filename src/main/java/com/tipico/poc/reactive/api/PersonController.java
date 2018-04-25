@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller
 @RequestMapping("/persons")
 public class PersonController {
@@ -20,6 +23,8 @@ public class PersonController {
 	private static final Logger logger = Logger.getLogger(PersonController.class);
 	@Autowired
 	private PersonService personService;
+
+	private Map<String, PersonDTO> personCache = new HashMap<>();
 
 	@GetMapping
 	public Flux<PersonDTO> index() {
@@ -44,6 +49,28 @@ public class PersonController {
 	@GetMapping("/delay")
 	public Flux<PersonDTO> findAllDelay() {
 		Flux<PersonDTO> persons = personService.getAllPersonsWithDelay(2);
+		Flux<PersonDTO> returnResult = persons.map(person -> {
+			person.setName(person.getName().toUpperCase());
+			person.setSurname(person.getSurname().toUpperCase());
+			return person;
+		});
+		logger.info("Exit Controller [OK]");
+		return returnResult;
+	}
+
+	@GetMapping("/delayCache")
+	public Flux<PersonDTO> findAllDelayFromCache() {
+		Flux<PersonDTO> persons;
+		// No support for @Cachable at yet ...hence we have to deal with caching manually.
+		// Follow this JIRA issue for progress: https://jira.spring.io/browse/SPR-14235
+		if (personCache.isEmpty()) {
+			logger.info("Getting data from Service ...");
+			persons = personService.getAllPersonsWithDelay(2).doOnNext(p -> personCache.put(p.getFullName(), p));
+		}
+		else {
+			logger.info("Getting data from Cache ...");
+			persons = Flux.fromIterable(personCache.values());
+		}
 		Flux<PersonDTO> returnResult = persons.map(person -> {
 			person.setName(person.getName().toUpperCase());
 			person.setSurname(person.getSurname().toUpperCase());
