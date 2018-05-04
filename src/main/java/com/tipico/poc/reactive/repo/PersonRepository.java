@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
@@ -26,6 +27,10 @@ public class PersonRepository {
 		personDb.add(new Person(3, "Melanie", "Micallef", 34));
 		personDb.add(new Person(4, "Samir", "Handanovic", 34));
 		personDb.add(new Person(5, "Mauro", "Icardi", 25));
+	}
+
+	public Mono<Person> findPersonById(int id) {
+		return Flux.fromIterable(this.personDb).filter(p -> p.getId() == id).next();
 	}
 
 	public Flux<Person> findAll() {

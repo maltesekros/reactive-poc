@@ -38,4 +38,11 @@ public class PersonServiceTest {
 		// Assert ...
 		StepVerifier.create(personFlux).expectErrorMessage("No element found with id. ").verify();
 	}
+
+	@Test
+	public void testGetFullPersonDetailsById() {
+		// No person is found with this id.
+		Mono<PersonDTO> personFlux = personService.getFullPersonDetailsById(1);
+		personFlux.subscribe(p -> System.out.println(p));
+	}
 }

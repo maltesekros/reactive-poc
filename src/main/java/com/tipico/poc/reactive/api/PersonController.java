@@ -38,12 +38,21 @@ public class PersonController {
 	}
 
 	@GetMapping("/{id}")
-	public Mono<ResponseEntity<PersonDTO>> findPersonById(@PathVariable int id) {
-		logger.info(String.format("Called findPersonById with [id: %d]", id));
+	public Mono<ResponseEntity<PersonDTO>> getPersonById(@PathVariable int id) {
+		logger.info(String.format("Called getPersonById with [id: %d]", id));
 		return personService.getPersonById(id).map(
 			ResponseEntity::ok).doOnError(e ->
 			logger.error("Error: ", e))
 				.onErrorReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+	}
+
+	@GetMapping("/full/{id}")
+	public Mono<ResponseEntity<PersonDTO>> getFullPersonDetailsById(@PathVariable int id) {
+		logger.info(String.format("Called getPersonById with [id: %d]", id));
+		return personService.getFullPersonDetailsById(id).map(
+			ResponseEntity::ok).doOnError(e ->
+			logger.error("Error: ", e))
+			.onErrorReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
 	@GetMapping("/delay")
@@ -61,7 +70,7 @@ public class PersonController {
 	@GetMapping("/delayCache")
 	public Flux<PersonDTO> findAllDelayFromCache() {
 		Flux<PersonDTO> persons;
-		// No support for @Cachable at yet ...hence we have to deal with caching manually.
+		// No support for @Cacheable at yet ...hence we have to deal with caching manually.
 		// Follow this JIRA issue for progress: https://jira.spring.io/browse/SPR-14235
 		if (personCache.isEmpty()) {
 			logger.info("Getting data from Service ...");
