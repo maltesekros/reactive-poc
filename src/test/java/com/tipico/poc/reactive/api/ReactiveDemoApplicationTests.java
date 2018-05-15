@@ -19,10 +19,6 @@ import java.util.function.DoubleSupplier;
 public class ReactiveDemoApplicationTests {
 
 	@Test
-	public void contextLoads() {
-	}
-
-	@Test
 	public void zipping() {
 		Flux<String> titles = Flux.just("Mr.", "Mrs.");
 		Flux<String> firstNames = Flux.just("John", "Jane");
