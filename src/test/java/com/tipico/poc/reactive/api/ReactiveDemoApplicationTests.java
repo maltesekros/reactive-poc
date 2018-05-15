@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.DoubleSupplier;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
 public class ReactiveDemoApplicationTests {
 
 	@Test
@@ -34,12 +32,18 @@ public class ReactiveDemoApplicationTests {
 			.map(t -> t.getT1() + " " + t.getT2() + " " + t.getT3());
 		StepVerifier.create(names).expectNext("Mr. John Doe", "Mrs. Jane Blake").verifyComplete();
 
-		Flux<Long> delay = Flux.interval(Duration.ofMillis(5));
+		Flux<Long> delay = Flux.interval(Duration.ofSeconds(3));
 		Flux<String> firstNamesWithDelay = firstNames.zipWith(delay, (s, l) -> s);
 		Flux<String> namesWithDelay = Flux
 			.zip(titles, firstNamesWithDelay, lastNames)
 			.map(t -> t.getT1() + " " + t.getT2() + " " + t.getT3());
-		StepVerifier.create(namesWithDelay).expectNext("Mr. John Doe", "Mrs. Jane Blake").verifyComplete();
+		namesWithDelay.subscribe(n -> System.out.println(n));
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		// StepVerifier.create(namesWithDelay).expectNext("Mr. John Doe", "Mrs. Jane Blake").verifyComplete();
 	}
 
 	@Test
@@ -68,7 +72,7 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux() {
+	public void testRange() {
 		Flux<Integer> ints = Flux.range(1, 10).map(i -> {
 			if (i == 4) {
 				i *= 2;
@@ -82,7 +86,7 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux2() {
+	public void testUnfinishedEventSequence() {
 		Flux<Integer> ints = Flux.range(1, 10).map(i -> {
 			if (i == 4) {
 				i *= 2;
@@ -98,20 +102,20 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux3() {
+	public void testFinishedFlux() {
 		Flux<Integer> ints = Flux.range(1, 10).map(i -> {
 			if (i == 4) {
 				i *= 2;
 			}
 			return i;
 		});
-		// 'Done' will never be printed.
+		// Done will be printed at the end
 		ints.subscribe(i -> System.out.println(i), error -> System.err.println("Error: " + error), () -> System.out
 			.println("Done"));
 	}
 
 	@Test
-	public void testFlux4() {
+	public void testFromIterator() {
 		Flux<String> seq1 = Flux.just("foo", "bar", "foobar");
 		List<String> list = Arrays.asList("foo", "bar", "foobar");
 
@@ -122,24 +126,23 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux5() {
-		AsteriskAppender<Integer> asteriskAppender = new AsteriskAppender<Integer>();
+	public void testCustomSubscriber() {
+		AsteriskAppender<Integer> asteriskAppender = new AsteriskAppender<>();
 		Flux<Integer> ints = Flux.range(1, 3);
-		// Add a subscriber 'asteriskAppender' as a consumer
 		ints.subscribe(i -> System.out.println(i),
 			error -> System.err.println("Error: " + error),
-			() -> System.out.println("Done"),
-			s -> asteriskAppender.request(10));
+			() -> System.out.println("Done"));
+		// Add a subscriber 'asteriskAppender' as a consumer
 		ints.subscribe(asteriskAppender);
 	}
 
 	@Test
-	public void testFlux6() {
-		// Programatically create the events (onNext, onError, onComplete)
+	public void manuallyGenerateEvents() {
+		// Programmatically create the events (onNext, onError, onComplete)
 		Flux<String> flux = Flux.generate(
 			() -> 0, // Initial State
 			(state, sink) -> {
-				sink.next("3 x " + state + " = " + 3*state); // Set what to emit
+				sink.next("3 x " + state + " = " + 3 * state); // Set what to emit
 				if (state == 10) sink.complete(); // When to stop
 				return state + 1; // Return a new state
 			});
@@ -147,8 +150,8 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux7() {
-		// Programatically create the events (onNext, onError, onComplete)
+	public void manuallyGenerateEventsWithCleanup() {
+		// Programmatically create the events (onNext, onError, onComplete)
 		Flux<String> flux = Flux.generate(
 			AtomicLong::new, // Initial State
 			(state, sink) -> {
@@ -156,18 +159,20 @@ public class ReactiveDemoApplicationTests {
 				sink.next("3 x " + i + " = " + 3*i); // Set what to emit
 				if (i == 10) sink.complete(); // When to stop
 				return state; // Return a new state
-			}, state -> {
+			},
+			// Variant to clean up last state
+			state -> {
 					System.out.println("Closing state: " + state);
 					state = new AtomicLong(0);
 					System.out.println("Cleanup: " + state);
 				}
-			); // Variant to clean up last state
+			);
 		flux.subscribe(i -> System.out.println(i));
 	}
 
 
 	@Test
-	public void testFlux8() {
+	public void moreManuallyGeneratedEventsTest() {
 		Flux<Double> flux = Flux.generate(
 			() -> 0, // Initial State
 			(state, sink) -> {
@@ -180,7 +185,7 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux9() {
+	public void testBridge() {
 		// We have an event processor that published 'chunks' of data to a number of listeners
 		MyEventProcessor myEventProcessor = new MyEventProcessor();
 		// We will use the Flux.create to bridge a synchronous call to a Flux
@@ -192,7 +197,6 @@ public class ReactiveDemoApplicationTests {
 							sink.next(s);
 						}
 					}
-
 					public void processComplete() {
 						sink.complete();
 					}
@@ -219,7 +223,7 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux10() {
+	public void overrideHandleTest() {
 		// Testing .handle operator
 		Flux<String> alphabetFlux = Flux.just(-1, 30, 13, 9, 20)
 			.handle((i, sink) -> {
@@ -233,7 +237,7 @@ public class ReactiveDemoApplicationTests {
 	}
 
 	@Test
-	public void testFlux11() {
+	public void testDifferentSchedulers() {
 		Flux intervalFlux = Flux.interval(Duration.ofMillis(1000), Schedulers.newSingle("test"))
 			.handle((item, sink) -> {
 				sink.next(item);
@@ -260,10 +264,8 @@ public class ReactiveDemoApplicationTests {
 	@Test
 	public void testColdSource() {
 		Flux<String> source = Flux.fromIterable(Arrays.asList("blue", "green", "orange", "purple"))
-			.doOnNext(System.out::println)
-			.filter(s -> s.startsWith("o"))
 			.map(String::toUpperCase);
-		// All subscribers will ALL the items
+		// All subscribers will receive all of the items and
 		source.subscribe(colour -> System.out.println("Subscriber 1: " + colour));
 		source.subscribe(colour -> System.out.println("Subscriber 2: " + colour));
 		source.subscribe(colour -> System.out.println("Subscriber 3: " + colour));
@@ -284,7 +286,7 @@ public class ReactiveDemoApplicationTests {
 		hotSource.onNext("blue");
 		hotSource.onNext("green");
 		// The second subscriber will NOT get all the items but will start getting only
-		// those from when he subsribed.
+		// those from when he subscribed.
 		hotFlux.subscribe(d -> System.out.println("Subscriber 2 to Hot Source: "+d));
 		hotSource.onNext("orange");
 		hotSource.onNext("purple");
